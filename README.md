@@ -109,7 +109,7 @@ are excluded from Git.
 
 [MIT](LICENSE), consistent with the license declared by the supplied application.
 Full production dependency notices are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
-The distribution also retains Electron's LICENSE and LICENSES.chromium.html.
+The distribution also retains Electron's LICENSE.electron.txt and LICENSES.chromium.html.
 See [license provenance](licenses/README.md).
 
 ## فارسی

@@ -16,6 +16,6 @@ supplied Vinyl.exe; only the ICO directory was reconstructed from their actual
 dimensions and lengths. Tray icons and the interface also originate in the
 supplied application.
 
-The Windows distribution retains the Electron LICENSE and
+The Windows distribution retains the Electron LICENSE.electron.txt and
 LICENSES.chromium.html delivered with its pinned runtime. Build tooling is not
 shipped as an application dependency.

@@ -23,7 +23,7 @@ for (const [relative, entry] of Object.entries(lock.packages)) {
   records.set(id, `${id}\nLicense: ${pkg.license}\nSource: ${repository}\n\n${body}`);
 }
 const ids = [...records.keys()].sort();
-const header = `Vinyl — third-party notices\n\nGenerated from package-lock.json by npm run notices.\n${ids.length} production package versions are listed below.\n\nElectron and Chromium ship their own LICENSE and LICENSES.chromium.html\nnext to Vinyl.exe; keep those files when redistributing the application.\nThe application license is provided separately in LICENSE.vinyl.txt.\nFor upstream license source links, see licenses/README.md in the source tree.\n\n`;
+const header = `Vinyl — third-party notices\n\nGenerated from package-lock.json by npm run notices.\n${ids.length} production package versions are listed below.\n\nElectron and Chromium ship their own LICENSE.electron.txt and LICENSES.chromium.html\nnext to Vinyl.exe; keep those files when redistributing the application.\nThe application license is provided separately in LICENSE.vinyl.txt.\nFor upstream license source links, see licenses/README.md in the source tree.\n\n`;
 const result = header + ids.map(id => `${'='.repeat(72)}\n${records.get(id)}\n`).join('\n');
 const target = path.join(root, 'THIRD_PARTY_NOTICES.txt');
 if (process.argv.includes('--check')) assert.equal(fs.readFileSync(target, 'utf8').replace(/\r\n/g, '\n'), result, 'Run npm run notices after changing production dependencies');

@@ -3,7 +3,7 @@ Vinyl — third-party notices
 Generated from package-lock.json by npm run notices.
 40 production package versions are listed below.
 
-Electron and Chromium ship their own LICENSE and LICENSES.chromium.html
+Electron and Chromium ship their own LICENSE.electron.txt and LICENSES.chromium.html
 next to Vinyl.exe; keep those files when redistributing the application.
 The application license is provided separately in LICENSE.vinyl.txt.
 For upstream license source links, see licenses/README.md in the source tree.

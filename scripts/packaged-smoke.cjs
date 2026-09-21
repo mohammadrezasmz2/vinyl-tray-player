@@ -25,7 +25,7 @@ async function freePort() {
   return port;
 }
 function checkFiles(directory) {
-  for (const file of ['Vinyl.exe', 'resources/app.asar', 'LICENSE', 'LICENSES.chromium.html',
+  for (const file of ['Vinyl.exe', 'resources/app.asar', 'LICENSE.electron.txt', 'LICENSES.chromium.html',
     'LICENSE.vinyl.txt', 'THIRD_PARTY_NOTICES.txt', 'README.fa.md']) {
     assert.ok(fs.statSync(path.join(directory, file)).size > 0, `Missing distribution file: ${file}`);
   }
