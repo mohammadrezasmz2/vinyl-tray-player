@@ -2,48 +2,23 @@
 
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, dialog,
-  protocol, nativeImage, shell, screen
+  protocol, nativeImage, shell, screen, net
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const Store = require('electron-store');
-const mm = require('music-metadata');
+let metadataModule;
+const { pathToFileURL } = require('node:url');
+const { DEFAULTS, EDITABLE, validSetting, normalizeSettings } = require('./lib/settings.cjs');
+const { AUDIO_MIME, IMAGE_MIME, MediaAccess, createMediaHandler } = require('./lib/media.cjs');
+const { trustedSender } = require('./lib/ipc.cjs');
+const ENTRY_URL = 'app://vinyl/index.html';
+const mediaAccess = new MediaAccess();
 
-const MIME = {
-  '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.mp4': 'audio/mp4',
-  '.aac': 'audio/aac', '.flac': 'audio/flac', '.wav': 'audio/wav',
-  '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.opus': 'audio/ogg',
-  '.webm': 'audio/webm', '.weba': 'audio/webm'
-};
-const AUDIO_EXTS = new Set(Object.keys(MIME));
-const IMG_MIME = {
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp', '.gif': 'image/gif', '.bmp': 'image/bmp', '.avif': 'image/avif'
-};
-
-const store = new Store({
-  name: 'vinyl-settings',
-  defaults: {
-    musicFolder: '',
-    favorites: [],
-    volume: 0.85,
-    shuffle: false,
-    repeat: 'off',   // 'off' | 'all' | 'one'
-    theme: 0,
-    lastTrack: '',
-    source: 'folder', // 'folder' | 'favorites'
-    autostart: true,  // launch with Windows so it's in the tray after reboot
-    ambient: [],      // active ambience layers: rain, thunder, fire, wind
-    ambientVol: 0.5,  // ambience mix volume
-    precip: 0.5,      // rainfall / precipitation intensity (0..1)
-    background: '',   // path to a user-uploaded background image
-    eqPreset: 'flat', // equalizer preset id
-    eqCustom1: [0, 0, 0, 0, 0, 0],
-    eqCustom2: [0, 0, 0, 0, 0, 0],
-    pinned: false     // keep the window open (don't hide on blur)
-  }
-});
+const AUDIO_EXTS = new Set(Object.keys(AUDIO_MIME));
+const store = new Store({ name: 'vinyl-settings', defaults: structuredClone(DEFAULTS) });
+store.set(normalizeSettings(store.store));
 
 let tray = null;
 let win = null;
@@ -62,8 +37,8 @@ function fileFromArgv(argv) {
   return null;
 }
 
-function handleOpenFile(fp) {
-  if (!fp) return;
+async function handleOpenFile(fp) {
+  if (!fp || !(await mediaAccess.allowAudio([fp])).length) return;
   const dir = path.dirname(fp);
   store.set('musicFolder', dir);
   store.set('source', 'folder');
@@ -80,7 +55,8 @@ function handleOpenFile(fp) {
 }
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } }
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }
 ]);
 
 function resolveMusicFolder() {
@@ -107,12 +83,15 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       autoplayPolicy: 'no-user-gesture-required'
     }
   });
 
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => { if (url !== ENTRY_URL) event.preventDefault(); });
+  win.webContents.on('will-attach-webview', event => event.preventDefault());
+  win.loadURL(ENTRY_URL);
 
   win.on('blur', () => {
     if (!pinned && !dialogOpen && win && win.isVisible()) win.hide();
@@ -149,6 +128,7 @@ function toggleWindow() {
 }
 
 function applyAutostart() {
+  if (process.platform !== 'win32' || !app.isPackaged) return;
   try {
     app.setLoginItemSettings({
       openAtLogin: !!store.get('autostart'),
@@ -181,6 +161,7 @@ function rebuildTrayMenu() {
     {
       label: 'Start with Windows',
       type: 'checkbox',
+      enabled: process.platform === 'win32' && app.isPackaged,
       checked: !!store.get('autostart'),
       click: (item) => { store.set('autostart', item.checked); applyAutostart(); }
     },
@@ -200,7 +181,7 @@ async function scanFolder(dir, depth = 0, out = []) {
     if (ent.isDirectory()) {
       if (ent.name.startsWith('.')) continue;
       await scanFolder(full, depth + 1, out);
-    } else if (AUDIO_EXTS.has(path.extname(ent.name).toLowerCase())) {
+    } else if (ent.isFile() && AUDIO_EXTS.has(path.extname(ent.name).toLowerCase())) {
       out.push(full);
     }
   }
@@ -210,7 +191,7 @@ function cleanName(file) {
   return path.basename(file, path.extname(file)).replace(/[_]+/g, ' ').trim();
 }
 async function buildTrackList(dir) {
-  const files = await scanFolder(dir);
+  const files = await mediaAccess.allowAudio(await scanFolder(dir));
   files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   return files.map((f) => ({ path: f, name: cleanName(f) }));
 }
@@ -218,7 +199,9 @@ async function buildTrackList(dir) {
 async function readMeta(file) {
   const result = { title: cleanName(file), artist: '', album: '', cover: null };
   try {
-    const meta = await mm.parseFile(file, { duration: false });
+    metadataModule ||= import('music-metadata');
+    const { parseFile } = await metadataModule;
+    const meta = await parseFile(file, { duration: false });
     const c = meta.common || {};
     if (c.title) result.title = c.title;
     if (c.artist) result.artist = c.artist;
@@ -253,7 +236,15 @@ async function pickFolder() {
   return null;
 }
 
-ipcMain.handle('get-state', () => ({
+function handleIpc(channel, handler) {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (!trustedSender(event, win, ENTRY_URL)) throw new Error('Untrusted IPC sender');
+    return handler(event, ...args);
+  });
+}
+
+handleIpc('get-state', () => ({
+  version: app.getVersion(),
   musicFolder: resolveMusicFolder(),
   favorites: store.get('favorites'),
   volume: store.get('volume'),
@@ -271,24 +262,37 @@ ipcMain.handle('get-state', () => ({
   eqCustom2: store.get('eqCustom2'),
   pinned: store.get('pinned')
 }));
-ipcMain.handle('list-tracks', async () => {
+handleIpc('list-tracks', async () => {
   const dir = resolveMusicFolder();
   return { folder: dir, tracks: await buildTrackList(dir) };
 });
-ipcMain.handle('track-meta', async (_e, file) => readMeta(file));
-ipcMain.handle('pick-folder', async () => pickFolder());
-ipcMain.handle('set-setting', (_e, key, value) => {
-  const allowed = ['favorites', 'volume', 'shuffle', 'repeat', 'theme', 'lastTrack', 'source', 'ambient', 'ambientVol', 'precip', 'eqPreset', 'eqCustom1', 'eqCustom2'];
-  if (allowed.includes(key)) store.set(key, value);
+handleIpc('track-meta', async (_e, file) => {
+  const real = await mediaAccess.resolve(file, true);
+  if (!real) throw new Error('Track is not in the music library or selected files');
+  return readMeta(real);
+});
+handleIpc('pick-folder', async () => pickFolder());
+handleIpc('set-setting', async (_e, key, value) => {
+  if (!EDITABLE.has(key) || !validSetting(key, value)) return false;
+  if (key === 'lastTrack' && value && !(await mediaAccess.resolve(value, true))) return false;
+  if (key === 'favorites') {
+    const previous = new Set(store.get('favorites'));
+    for (const file of value) {
+      if (!previous.has(file) && !(await mediaAccess.resolve(file, true))) return false;
+    }
+    value = [...new Set(value)];
+  }
+  store.set(key, value);
   return true;
 });
-ipcMain.handle('set-pinned', (_e, value) => {
-  pinned = !!value;
+handleIpc('set-pinned', (_e, value) => {
+  if (typeof value !== 'boolean') return pinned;
+  pinned = value;
   store.set('pinned', pinned);
   if (win) win.setAlwaysOnTop(true);
   return pinned;
 });
-ipcMain.handle('pick-background', async () => {
+handleIpc('pick-background', async () => {
   dialogOpen = true;
   try {
     const res = await dialog.showOpenDialog(win, {
@@ -298,16 +302,14 @@ ipcMain.handle('pick-background', async () => {
     });
     if (!res.canceled && res.filePaths[0]) {
       const src = res.filePaths[0];
-      const ext = path.extname(src).toLowerCase() || '.png';
-      const udir = app.getPath('userData');
-      try {
-        for (const f of fs.readdirSync(udir)) {
-          if (/^(background|bg-)/i.test(f)) { try { fs.unlinkSync(path.join(udir, f)); } catch (_) {} }
-        }
-      } catch (_) {}
-      const dest = path.join(udir, 'bg-' + Date.now() + ext);
-      fs.copyFileSync(src, dest);
+      const ext = path.extname(src).toLowerCase();
+      if (!Object.hasOwn(IMAGE_MIME, ext)) return null;
+      const previous = store.get('background');
+      const dest = path.join(app.getPath('userData'), 'bg-' + Date.now() + ext);
+      await fsp.copyFile(src, dest);
       store.set('background', dest);
+      await mediaAccess.setBackground(dest);
+      if (previous !== dest) await removeManagedBackground(previous);
       return dest;
     }
   } finally {
@@ -316,13 +318,19 @@ ipcMain.handle('pick-background', async () => {
   }
   return null;
 });
-ipcMain.handle('clear-background', () => {
+async function removeManagedBackground(file) {
+  if (!file || path.dirname(file) !== app.getPath('userData') ||
+      !/^(?:bg-\d+|background)\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(path.basename(file))) return;
+  await fsp.unlink(file).catch(() => {});
+}
+handleIpc('clear-background', async () => {
   const cur = store.get('background');
-  if (cur) { try { fs.unlinkSync(cur); } catch (_) {} }
   store.set('background', '');
+  await mediaAccess.setBackground('');
+  await removeManagedBackground(cur);
   return true;
 });
-ipcMain.handle('pick-tracks', async () => {
+handleIpc('pick-tracks', async () => {
   dialogOpen = true;
   try {
     const res = await dialog.showOpenDialog(win, {
@@ -332,7 +340,7 @@ ipcMain.handle('pick-tracks', async () => {
       filters: [{ name: 'Audio', extensions: [...AUDIO_EXTS].map(e => e.replace('.', '')) }]
     });
     if (!res.canceled && res.filePaths.length) {
-      return { files: res.filePaths };
+      return { files: await mediaAccess.allowAudio(res.filePaths) };
     }
   } finally {
     dialogOpen = false;
@@ -340,96 +348,52 @@ ipcMain.handle('pick-tracks', async () => {
   }
   return null;
 });
-ipcMain.handle('get-pending-file', () => { const f = pendingFile; pendingFile = null; return f; });
-ipcMain.handle('open-current-folder', () => { shell.openPath(resolveMusicFolder()); });
-ipcMain.on('hide-window', () => { if (win) win.hide(); });
+handleIpc('get-pending-file', () => { const f = pendingFile; pendingFile = null; return f; });
+handleIpc('open-current-folder', () => shell.openPath(resolveMusicFolder()));
+ipcMain.on('hide-window', event => { if (trustedSender(event, win, ENTRY_URL)) win.hide(); });
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', (_e, argv) => {
+  app.on('second-instance', async (_e, argv) => {
     const f = fileFromArgv(argv);
-    if (f) handleOpenFile(f);
+    if (f) await handleOpenFile(f);
     else toggleWindow();
   });
 
-  app.whenReady().then(() => {
-    // media:// with byte-range support. Fixed-length Buffer bodies (not chunked
-    // streams) so the browser gets a real Content-Length, learns duration, seeks.
-    protocol.handle('media', async (request) => {
-      let fh;
-      try {
-        const url = new URL(request.url);
-        const filePath = decodeURIComponent(url.pathname.replace(/^\//, ''));
-        const stat = await fsp.stat(filePath);
-        const size = stat.size;
-        const mime = MIME[path.extname(filePath).toLowerCase()] || IMG_MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
-
-        if (request.method === 'HEAD') {
-          return new Response(null, {
-            status: 200,
-            headers: { 'Content-Type': mime, 'Content-Length': String(size), 'Accept-Ranges': 'bytes' }
-          });
-        }
-
-        const rangeHeader = request.headers.get('Range') || request.headers.get('range');
-        if (rangeHeader) {
-          const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
-          let start = m && m[1] ? parseInt(m[1], 10) : 0;
-          let end = m && m[2] ? parseInt(m[2], 10) : size - 1;
-          if (isNaN(start) || start < 0) start = 0;
-          if (isNaN(end) || end >= size) end = size - 1;
-          if (start > end) start = 0;
-          const chunk = end - start + 1;
-          // Serve the exact requested range (no cap) so the browser learns the
-          // true length and can seek anywhere. bytes=0- returns the whole file.
-          let buf;
-          if (start === 0 && end === size - 1) {
-            buf = await fsp.readFile(filePath);
-          } else {
-            buf = Buffer.allocUnsafe(chunk);
-            fh = await fsp.open(filePath, 'r');
-            await fh.read(buf, 0, chunk, start);
-            await fh.close(); fh = null;
-          }
-          return new Response(buf, {
-            status: 206,
-            headers: {
-              'Content-Type': mime,
-              'Content-Length': String(chunk),
-              'Content-Range': `bytes ${start}-${end}/${size}`,
-              'Accept-Ranges': 'bytes'
-            }
-          });
-        }
-
-        const buf = await fsp.readFile(filePath);
-        return new Response(buf, {
-          status: 200,
-          headers: { 'Content-Type': mime, 'Content-Length': String(size), 'Accept-Ranges': 'bytes' }
-        });
-      } catch (err) {
-        if (fh) { try { await fh.close(); } catch (_) {} }
-        return new Response('Not found', { status: 404 });
+  app.whenReady().then(async () => {
+    const resources = new Set(['/index.html', '/renderer.js', '/styles.css']);
+    protocol.handle('app', request => {
+      const url = new URL(request.url);
+      if (url.host !== 'vinyl' || !resources.has(url.pathname) || !['GET', 'HEAD'].includes(request.method)) {
+        return new Response(null, { status: 404 });
       }
+      return net.fetch(pathToFileURL(path.join(__dirname, 'renderer', url.pathname.slice(1))).toString(), {
+        method: request.method
+      });
     });
+    protocol.handle('media', createMediaHandler(mediaAccess));
+    await mediaAccess.allowAudio([...store.get('favorites'), store.get('lastTrack')]);
+    await mediaAccess.setBackground(store.get('background'));
 
+    const initFile = fileFromArgv(process.argv);
+    if (initFile && (await mediaAccess.allowAudio([initFile])).length) {
+      pendingFile = initFile;
+      store.set('musicFolder', path.dirname(initFile));
+      store.set('source', 'folder');
+    }
     if (app.dock) app.dock.hide();
     pinned = !!store.get('pinned');
     createWindow();
     createTray();
     applyAutostart();
-
-    const initFile = fileFromArgv(process.argv);
-    if (initFile) {
-      pendingFile = initFile;
-      store.set('musicFolder', path.dirname(initFile));
-      store.set('source', 'folder');
+    if (pendingFile) {
       win.webContents.once('did-finish-load', () => {
         positionWindowNearTray(); win.show(); win.focus();
       });
     }
+
   });
 
   app.on('window-all-closed', () => {});

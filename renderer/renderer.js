@@ -16,7 +16,7 @@ const changeFolderBtn=$('changeFolderBtn'), selectMusicBtn=$('selectMusicBtn');
 
 let allTracks=[], favorites=[], queue=[], currentPath='';
 let shuffle=false, repeat='off', source='folder', sheetMode='', history=[], musicFolder='';
-let themeIdx=0, seeking=false;
+let themeIdx=0, seeking=false, trackRequestId=0, folderRequestId=0;
 
 /* themes */
 const THEMES=[
@@ -220,6 +220,7 @@ const folderShort=(p)=>{ if(!p)return 'Music folder'; const a=p.split(/[\\/]/).f
 /* init */
 async function init(){
   const st=await api.getState();
+  if(st.version) $('aboutVersion').textContent='Version '+st.version;
   precip=(st.precip??0.5);
   applyTheme(st.theme||0,false);
   favorites=st.favorites||[]; shuffle=!!st.shuffle; repeat=st.repeat||'off'; source=st.source||'folder';
@@ -228,6 +229,7 @@ async function init(){
   sourceSel.value=source; shuffleBtn.classList.toggle('active',shuffle); applyRepeatUI();
 
   ambVol=(st.ambientVol??0.5); if(ambMaster)ambMaster.gain.value=ambVol;
+  for(const name of (st.ambient||[])) { if(AMB[name]&&!ambNodes[name]) ambToggle(name); }
   const av=document.getElementById('ambVolume'); if(av){ av.value=Math.round(ambVol*100); av.style.setProperty('--pv',av.value+'%'); }
   const pr=document.getElementById('precipRange'); if(pr){ pr.value=Math.round(precip*100); pr.style.setProperty('--pv',pr.value+'%'); }
   if(st.background) applyBackground(st.background);
@@ -252,27 +254,32 @@ function rebuildQueue(){ queue=source==='favorites'?favorites.slice():allTracks.
 
 async function loadTrack(pth,autoplay){
   if(!pth)return;
+  const requestId=++trackRequestId;
   currentPath=pth; audio.src=api.mediaUrl(pth);
   history.push(pth); if(history.length>200)history.shift();
   titleEl.textContent=nameFor(pth); applyMarquee();
   label.classList.remove('has-cover'); coverImg.removeAttribute('src');
   seek.value=0; seek.style.setProperty('--p','0%'); curEl.textContent='0:00'; durEl.textContent='0:00';
   updateFavIcon(); markSheetPlaying();
-  await api.setSetting('lastTrack',pth);
+  subEl.textContent=folderShort(musicFolder);
+  api.setSetting('lastTrack',pth).catch(()=>{});
+  if(autoplay)play(); else pause();
   try{
     const meta=await api.trackMeta(pth);
-    if(currentPath!==pth)return;
+    if(requestId!==trackRequestId)return;
     if(meta.title){ titleEl.textContent=meta.title; applyMarquee(); }
     subEl.textContent=meta.artist?(meta.album?meta.artist+' · '+meta.album:meta.artist):folderShort(musicFolder);
     if(meta.cover){ coverImg.src=meta.cover; label.classList.add('has-cover'); }
   }catch(_){}
-  if(autoplay)play();
 }
 
 /* playback */
 function play(){ if(!currentPath){ if(queue.length)loadTrack(queue[0],true); return; }
   buildEq();
-  const r=audio.play(); if(r&&r.then)r.then(()=>setPlaying(true)).catch(()=>setPlaying(false)); }
+  const requestId=trackRequestId;
+  const r=audio.play(); if(r&&r.catch)r.catch(err=>{
+    if(requestId===trackRequestId&&err.name!=='AbortError'){ setPlaying(false); showToast('Unable to play this track'); }
+  }); }
 function pause(){ audio.pause(); setPlaying(false); }
 function togglePlay(){ audio.paused?play():pause(); }
 function setPlaying(on){ disc.classList.toggle('spinning',on); tonearm.classList.toggle('on',on);
@@ -339,8 +346,8 @@ function renderSheet(){
   });
   sheetList.appendChild(frag);
 }
-function markSheetPlaying(){ sheetList.querySelectorAll('.row').forEach(r=>{ const on=r.dataset.path===currentPath;
-  r.classList.toggle('playing',on); const idx=r.querySelector('.idx'); if(idx&&on)idx.textContent='♪'; }); }
+function markSheetPlaying(){ sheetList.querySelectorAll('.row').forEach((r,i)=>{ const on=r.dataset.path===currentPath;
+  r.classList.toggle('playing',on); const idx=r.querySelector('.idx'); if(idx)idx.textContent=on?'♪':String(i+1); }); }
 
 /* marquee */
 function applyMarquee(){ titleEl.classList.remove('marquee'); titleEl.style.removeProperty('--marq-x');
@@ -369,18 +376,26 @@ repeatBtn.addEventListener('click',async()=>{ repeat=repeat==='off'?'all':repeat
 gridBtn.addEventListener('click',()=>sheetMode==='favorites'?closeSheet():openSheet('favorites'));
 folderBtn.addEventListener('click',()=>sheetMode==='library'?closeSheet():openSheet('library'));
 $('sheetClose').addEventListener('click',closeSheet);
-changeFolderBtn.addEventListener('click',async()=>{ const f=await api.pickFolder(); if(f)await reloadFolder(); });
+changeFolderBtn.addEventListener('click',()=>api.pickFolder());
 selectMusicBtn.addEventListener('click',async()=>{ const r=await api.pickTracks();
   if(!r||!r.files||!r.files.length)return;
   // quick play: don't change the library folder — just play the picked file(s)
   queue=r.files.slice(); loadTrack(r.files[0],true); markSheetPlaying(); });
 sourceSel.addEventListener('change',async()=>{ source=sourceSel.value; await api.setSetting('source',source); rebuildQueue(); if(sheetMode)renderSheet(); });
 
-async function reloadFolder(){ const res=await api.listTracks(); allTracks=res.tracks||[]; musicFolder=res.folder||'';
+async function reloadFolder(selectFirst=true){
+  const requestId=++folderRequestId;
+  const res=await api.listTracks();
+  if(requestId!==folderRequestId)return;
+  allTracks=res.tracks||[]; musicFolder=res.folder||'';
+  source='folder'; sourceSel.value='folder';
+  await api.setSetting('source','folder');
+  if(requestId!==folderRequestId)return;
   subEl.textContent=folderShort(musicFolder); rebuildQueue(); if(sheetMode)renderSheet();
-  if(queue.length&&!queue.includes(currentPath))loadTrack(queue[0],false); }
+  if(selectFirst&&queue.length&&!queue.includes(currentPath))loadTrack(queue[0],false);
+}
 api.onFolderChanged(()=>reloadFolder());
-api.onPlayFile(async (d)=>{ await reloadFolder(); if(d&&d.file) loadTrack(d.file,true); });
+api.onPlayFile(async (d)=>{ if(d&&d.file){ await reloadFolder(false); loadTrack(d.file,true); } });
 
 /* panels */
 function closePanels(except){ ['ambSheet','bgSheet','eqSheet','aboutSheet'].forEach(id=>{ if(id!==except){ const el=document.getElementById(id); if(el)el.classList.remove('open'); } }); if(sheetMode)closeSheet(); }
@@ -429,7 +444,7 @@ audio.addEventListener('ended',()=>{ if(repeat==='one'){audio.currentTime=0;play
 audio.addEventListener('play',()=>setPlaying(true));
 audio.addEventListener('playing',()=>setPlaying(true));
 audio.addEventListener('pause',()=>setPlaying(false));
-audio.addEventListener('error',()=>setPlaying(false));
+audio.addEventListener('error',()=>{setPlaying(false);showToast('This track is missing or cannot be played');});
 
 let seekWasPlaying=false;
 seek.addEventListener('pointerdown',()=>{seeking=true;seekWasPlaying=!audio.paused;});
@@ -447,4 +462,8 @@ document.addEventListener('keydown',(e)=>{ if(e.code==='Space'){e.preventDefault
   else if(e.code==='Escape'){ const op=['ambSheet','bgSheet','eqSheet','aboutSheet'].map(id=>document.getElementById(id)).find(el=>el&&el.classList.contains('open'));
     if(op)op.classList.remove('open'); else if(sheetMode)closeSheet(); else api.hideWindow(); } });
 
-init();
+init().catch(error=>{
+  titleEl.textContent='Unable to load your music';
+  showToast('Could not load settings or music folder');
+  console.error('Vinyl initialization failed',error);
+});

@@ -1,13 +1,30 @@
 {
   "name": "vinyl-tray-player",
   "productName": "Vinyl",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "A turntable-style tray music player for Windows",
   "author": "Vinyl",
   "license": "MIT",
   "main": "main.js",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohammadrezasmz2/vinyl-tray-player.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "check": "node scripts/check.cjs",
+    "test": "node --test test/*.test.cjs",
+    "test:electron": "electron scripts/electron-smoke.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.4.3"
+  },
   "dependencies": {
-    "electron-store": "^8.2.0",
-    "music-metadata": "^7.14.0"
+    "electron-store": "8.2.0",
+    "music-metadata": "11.15.0"
   }
 }
