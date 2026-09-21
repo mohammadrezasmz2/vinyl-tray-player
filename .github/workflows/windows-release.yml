@@ -1,0 +1,74 @@
+name: Windows build and release
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish this checked build as a GitHub release
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npm run notices:check
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run test:electron
+      - run: npm run build:win
+      - run: npm run test:package
+      - run: npm run release:files
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vinyl-windows-x64
+          path: dist/release/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+  publish:
+    needs: build
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: vinyl-windows-x64
+          path: release-files
+      - name: Verify files and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-files
+          sha256sum --check SHA256SUMS.txt
+          cd ..
+          node -e 'const a=require("./release-files/build-info.json"); if(a.commit!==process.env.GITHUB_SHA || a.windowsChecks!=="passed") process.exit(1)'
+          version=$(node -p 'require("./package.json").version')
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists. Use a new version; existing releases are not overwritten."
+            exit 1
+          fi
+          gh release create "$tag" release-files/* --target "$GITHUB_SHA" --title "Vinyl $version" --notes-file docs/RELEASE_NOTES.md --draft
+          gh release edit "$tag" --draft=false --latest

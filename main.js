@@ -17,6 +17,13 @@ const ENTRY_URL = 'app://vinyl/index.html';
 const mediaAccess = new MediaAccess();
 
 const AUDIO_EXTS = new Set(Object.keys(AUDIO_MIME));
+// Keep Electron's profile and application settings together when an explicit
+// profile directory is supplied, including isolated packaged-app checks.
+const userDataOverride = app.commandLine.getSwitchValue('user-data-dir');
+if (userDataOverride && path.isAbsolute(userDataOverride)) {
+  fs.mkdirSync(userDataOverride, { recursive: true });
+  app.setPath('userData', userDataOverride);
+}
 const store = new Store({ name: 'vinyl-settings', defaults: structuredClone(DEFAULTS) });
 store.set(normalizeSettings(store.store));
 

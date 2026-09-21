@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.4 — source preparation (2026-09-21)
+## 1.6.4 — initial open-source release (2026-09-21)
 
 ### Fixed
 
@@ -25,9 +25,15 @@
 
 - Node.js 24 setup, a dependency lockfile, and install/run instructions.
 - Regression tests, a real Electron smoke test, and Linux/Windows CI checks.
+- Windows x64 NSIS installer and ZIP builds with the original application icon.
+- MIT license text, production dependency notices, and a Windows usage guide.
+- Real packaged-app checks for ZIP startup, silent installation, playback,
+  seeking, and uninstallation before publication.
+- Release source archive, SHA-256 checksums, build information, and test evidence.
+- Explicit `--user-data-dir` support for isolated application settings and profile data.
 
-This is a source update. Installer packaging and a downloadable release are
-pending the final publication stage.
+The Windows binaries are unsigned. Manual listening, interactive installer
+screens, upgrade from 1.6.3, and packaged autostart remain unverified.
 
 ## 1.6.3 — recovered baseline
 

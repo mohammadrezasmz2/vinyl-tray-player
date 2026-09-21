@@ -2,6 +2,19 @@
 
 A turntable-style tray music player for Windows, built with Electron.
 
+## Download for Windows
+
+Get the [latest release](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/latest):
+
+- **Setup-x64.exe**: installer for 64-bit Windows; choose an installation folder.
+- **Windows-x64.zip**: extract the entire archive, then run `Vinyl.exe`.
+
+Vinyl opens from its system-tray icon. The release includes source, SHA-256
+checksums, and the Windows package test results. These community builds are
+unsigned. See the [Persian Windows guide](docs/WINDOWS.fa.md).
+
+![Vinyl player](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/download/v1.6.4/Vinyl-1.6.4.png)
+
 ## Run from source
 
 Install Node.js 24 and Git on Windows, then run:
@@ -47,6 +60,23 @@ GitHub Actions runs the source checks and regression tests on Linux and Windows,
 and the Electron smoke test on Windows. It uses the committed lockfile and
 Node.js 24.
 
+## Build a Windows release
+
+On Windows, after `npm ci`:
+
+```sh
+npm run build:win
+```
+
+The NSIS installer and ZIP appear in `dist/`. The pinned electron-builder
+configuration retains the original icon, includes production dependencies and
+license notices, and excludes development tooling from the packaged app.
+
+The Windows release workflow additionally extracts and launches the ZIP, performs
+a silent installation, launches the installed executable, and uninstalls it in a
+disposable CI runner. Publishing starts only after these checks pass. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for maintenance and release steps.
+
 ## Project files
 
 - `main.js`: Electron main process, tray menu, settings, and local media access.
@@ -59,10 +89,9 @@ Node.js 24.
 
 ## Source and release status
 
-The current development source is **1.6.4**. It uses Electron 44.4.3,
+The current version is **1.6.4**. It uses Electron 44.4.3,
 electron-store 8.2.0, and music-metadata 11.15.0. See [CHANGELOG.md](CHANGELOG.md)
-for fixes and [the Persian stage-3 review](docs/STAGE_3_REVIEW.fa.md) for the
-remaining publication work.
+for fixes and [the release notes](docs/RELEASE_NOTES.md) for validation scope.
 
 The original 1.6.3 source was recovered from `resources/app.asar` in the supplied
 Windows package. All 895 ASAR entries matched their stored SHA-256 hashes. The
@@ -70,21 +99,24 @@ eight original application files are preserved at
 [the recovery baseline](https://github.com/mohammadrezasmz2/vinyl-tray-player/tree/a9c4f4a915e9e9027e66e09e201b666fa64b8bc0).
 That package bundled Electron 31.7.7 and music-metadata 7.14.0.
 
-Installer configuration and a downloadable release are still pending. This
-source update does not include a newly built Windows executable. Installer,
-upgrade, packaged autostart, and manual listening checks remain to be completed.
-Generated runtimes and `node_modules` are excluded from Git.
+The automated tests cover a generated WAV, programmatic playback and seeking,
+ZIP startup, and silent installation/uninstallation. Manual listening, the
+interactive installer screens, upgrade from the recovered 1.6.3 installer, and
+packaged autostart have not been verified. Generated runtimes and `node_modules`
+are excluded from Git.
 
-## License metadata
+## License
 
-The supplied `package.json` declares `MIT` and author `Vinyl`. It does not contain
-a separate application license text. Adding that file and completing third-party
-notices remain part of the final publication stage.
+[MIT](LICENSE), consistent with the license declared by the supplied application.
+Full production dependency notices are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+The distribution also retains Electron's LICENSE and LICENSES.chromium.html.
+See [license provenance](licenses/README.md).
 
 ## فارسی
 
 این مخزن مستقل برای Vinyl است. سورس اولیه از نسخهٔ ویندوزی ۱.۶.۳ بازیابی شده
-و نسخهٔ توسعهٔ ۱.۶.۴ شامل اصلاح پخش، تنظیمات و دسترسی به فایل‌هاست.
+و نسخهٔ ۱.۶.۴ شامل اصلاح پخش، تنظیمات و دسترسی به فایل‌هاست.
 برای اجرا روی ویندوز، Node.js 24 را نصب کنید و دستورهای بالا را اجرا کنید؛
-برنامه از آیکون کنار ساعت باز می‌شود. ساخت نصب‌کننده و انتشار نهایی در مرحلهٔ ۴
-انجام می‌شود. [گزارش تغییرات و موارد باقی‌مانده](docs/STAGE_3_REVIEW.fa.md)
+برنامه از آیکون کنار ساعت باز می‌شود. نصب‌کننده و نسخهٔ بدون نصب را از
+[صفحهٔ انتشار](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/latest)
+بگیرید. [راهنمای فارسی ویندوز](docs/WINDOWS.fa.md)

@@ -1,0 +1,38 @@
+{
+  "appId": "com.vinyl.trayplayer",
+  "productName": "Vinyl",
+  "copyright": "Copyright © 2026 Vinyl contributors",
+  "asar": true,
+  "npmRebuild": false,
+  "publish": null,
+  "directories": { "output": "dist", "buildResources": "assets" },
+  "files": [
+    "main.js", "preload.js", "package.json", "lib/**", "renderer/**",
+    "assets/**", "LICENSE", "THIRD_PARTY_NOTICES.txt"
+  ],
+  "extraFiles": [
+    { "from": "LICENSE", "to": "LICENSE.vinyl.txt" },
+    { "from": "THIRD_PARTY_NOTICES.txt", "to": "THIRD_PARTY_NOTICES.txt" },
+    { "from": "docs/WINDOWS.fa.md", "to": "README.fa.md" }
+  ],
+  "win": {
+    "target": [ { "target": "nsis", "arch": ["x64"] }, { "target": "zip", "arch": ["x64"] } ],
+    "icon": "assets/icon.ico",
+    "artifactName": "Vinyl-${version}-Windows-${arch}.${ext}",
+    "requestedExecutionLevel": "asInvoker",
+    "signExecutable": false
+  },
+  "nsis": {
+    "artifactName": "Vinyl-${version}-Setup-${arch}.${ext}",
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": false,
+    "createStartMenuShortcut": true,
+    "runAfterFinish": false,
+    "deleteAppDataOnUninstall": false,
+    "packElevateHelper": false,
+    "license": "LICENSE"
+  }
+}

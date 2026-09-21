@@ -18,10 +18,16 @@
     "start": "electron .",
     "check": "node scripts/check.cjs",
     "test": "node --test test/*.test.cjs",
-    "test:electron": "electron scripts/electron-smoke.cjs"
+    "test:electron": "electron scripts/electron-smoke.cjs",
+    "notices": "node scripts/notices.cjs",
+    "notices:check": "node scripts/notices.cjs --check",
+    "build:win": "npm run notices && electron-builder --config electron-builder.json --win nsis zip --x64 --publish never",
+    "test:package": "node scripts/packaged-smoke.cjs",
+    "release:files": "node scripts/release-files.cjs"
   },
   "devDependencies": {
-    "electron": "44.4.3"
+    "electron": "44.4.3",
+    "electron-builder": "26.15.3"
   },
   "dependencies": {
     "electron-store": "8.2.0",
