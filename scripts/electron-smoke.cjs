@@ -25,6 +25,7 @@ function finish(error) {
 }
 const deadline = setTimeout(() => finish(new Error('Electron smoke timed out')), 45000);
 app.on('web-contents-created', (_event, contents) => {
+  contents.on('console-message', details => console.log('Renderer:', details.message));
   contents.on('preload-error', (_event, _file, error) => finish(error));
   contents.on('render-process-gone', (_event, details) => { if (!finished) finish(new Error(JSON.stringify(details))); });
 });
@@ -40,12 +41,14 @@ app.once('browser-window-created', (_event, win) => {
         const after = await api.getState();
         const library = await api.listTracks();
         const file = library.tracks[0].path;
+        console.log('Smoke: settings and library loaded; checking media requests');
         const response = await fetch(api.mediaUrl(file), {headers:{Range:'bytes=-4'}});
         const ranged = {status:response.status, size:(await response.arrayBuffer()).byteLength};
         const blocked = await fetch(api.mediaUrl(${JSON.stringify(outside)}));
         let metadataBlocked = false;
         try { await api.trackMeta(${JSON.stringify(outside)}); } catch { metadataBlocked = true; }
         const metadata = await api.trackMeta(file);
+        console.log('Smoke: ranges, denied paths and metadata passed; checking playback');
         const audio = document.getElementById('audio');
         audio.muted = true;
         await new Promise((resolve, reject) => {

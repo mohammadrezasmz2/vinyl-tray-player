@@ -14,6 +14,12 @@ test('media responses preserve exact bytes, suffix ranges and HEAD metadata', as
   await fs.writeFile(file, bytes);
   const access = new MediaAccess(); await access.allowAudio([file]);
   const serve = createMediaHandler(access), url = 'media://local/' + encodeURIComponent(file);
+  const preflight = await serve(new Request(url, { method: 'OPTIONS', headers: {
+    Origin: 'app://vinyl', 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'range'
+  } }));
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('Access-Control-Allow-Origin'), 'app://vinyl');
+  assert.equal(preflight.headers.get('Access-Control-Allow-Headers'), 'Range');
   const head = await serve(new Request(url, { method: 'HEAD' }));
   assert.equal(head.status, 200); assert.equal(head.body, null);
   assert.equal(head.headers.get('Content-Length'), String(bytes.length));
@@ -59,6 +65,13 @@ test('media access rejects unselected paths and handles missing/empty files', as
   assert.equal((await serve(new Request('media://local/%ZZ'))).status, 400);
   const foreign = request(file); foreign.initiatorOrigin = 'https://example.com';
   assert.equal((await serve(foreign)).status, 403);
+  assert.equal((await serve(request(file, { method: 'OPTIONS', headers: {
+    Origin: 'https://example.com', 'Access-Control-Request-Method': 'GET'
+  } }))).status, 403);
+  assert.equal((await serve(request(file, { method: 'OPTIONS', headers: {
+    Origin: 'app://vinyl', 'Access-Control-Request-Method': 'POST'
+  } }))).status, 403);
+  assert.equal((await serve(request(other))).headers.get('Access-Control-Allow-Origin'), 'app://vinyl');
   await fs.unlink(file);
   assert.equal((await serve(request(file))).status, 404);
 });
