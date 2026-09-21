@@ -1,0 +1,13 @@
+{
+  "name": "vinyl-tray-player",
+  "productName": "Vinyl",
+  "version": "1.6.3",
+  "description": "A turntable-style tray music player for Windows",
+  "author": "Vinyl",
+  "license": "MIT",
+  "main": "main.js",
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "music-metadata": "^7.14.0"
+  }
+}

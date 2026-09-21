@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: media:; media-src media: data: 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+  <title>Vinyl</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="cabinet">
+
+    <canvas id="weather" class="weather"></canvas>
+
+    <header class="bar">
+      <button id="brand" class="brandmark" title="Change theme"><span class="dot"></span> vinyl</button>
+      <div class="bar-right">
+        <button id="pinBtn" class="icon-btn" title="Keep window open (pin)">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 3h6M10 3l-.6 7L6 13.2V15h12v-1.8l-3.4-3L14 3M12 15v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="aboutBtn" class="icon-btn" title="About">
+          <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="1.15" fill="currentColor"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        </button>
+        <button id="bgBtn" class="icon-btn" title="Background image">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8.4" cy="10" r="1.6" fill="currentColor"/><path d="M4 17.5l5-4 3 2 4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="ambBtn" class="icon-btn" title="Ambience — rain, fire, thunder, wind">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path d="M7 14c-2.2 0-4-1.8-4-4s1.8-4 4-4c.4-2.3 2.4-4 4.8-4 2.7 0 4.9 2.2 4.9 4.9v.1c1.8.1 3.3 1.6 3.3 3.5S18.5 14 16.6 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 17l-1 2.4M12 17l-1 2.4M16 17l-1 2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </button>
+        <button id="closeBtn" class="icon-btn close" title="Hide">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="deck">
+      <div class="platter" id="platter" title="Play / stop">
+        <div class="disc" id="disc">
+          <div class="grooves"></div>
+          <div class="label" id="label">
+            <img id="coverImg" alt="" />
+            <div class="label-fallback" id="labelFallback">
+              <svg viewBox="0 0 24 24" width="26" height="26"><path d="M9 18V6l10-2v12" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="6.5" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="16.5" cy="16" r="2.6" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>
+            </div>
+          </div>
+          <div class="spindle"></div>
+        </div>
+      </div>
+      <div id="tonearm" class="tonearm">
+        <div class="arm-bar">
+          <div class="arm-cw"></div>
+          <div class="arm-head"></div>
+        </div>
+        <div class="arm-pivot"></div>
+      </div>
+    </section>
+
+    <section class="now">
+      <div class="title-wrap"><div class="title" id="title">Tap the record to play</div></div>
+      <div class="sub" id="sub">Your Music folder</div>
+    </section>
+
+    <section class="seek">
+      <input type="range" id="seek" min="0" max="1000" value="0" step="1" />
+      <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+    </section>
+
+    <section class="transport">
+      <div class="tp-left">
+        <button id="shuffleBtn" class="icon-btn sm" title="Shuffle">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 6h4l3 4M3 18h4l7-9h4M14 5l3 1-1 3M21 18h-4l-2-2.5M18 15l3 3-3 3" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="repeatBtn" class="icon-btn sm" title="Repeat">
+          <svg id="repeatIcon" viewBox="0 0 24 24" width="18" height="18"><path d="M17 2l4 4-4 4M21 6H8a4 4 0 0 0-4 4v1M7 22l-4-4 4-4M3 18h13a4 4 0 0 0 4-4v-1" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg id="repeatOneIcon" class="hidden" viewBox="0 0 24 24" width="18" height="18"><path d="M17 2l4 4-4 4M21 6H8a4 4 0 0 0-4 4v1M7 22l-4-4 4-4M3 18h13a4 4 0 0 0 4-4v-1" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">1</text></svg>
+        </button>
+      </div>
+      <div class="tp-mid">
+        <button id="prevBtn" class="icon-btn" title="Previous">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 6L9 12l9 6V6zM6 6v12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="playBtn" class="play" title="Play / stop">
+          <svg id="playIcon" viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          <svg id="pauseIcon" class="hidden" viewBox="0 0 24 24" width="20" height="20"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+        </button>
+        <button id="nextBtn" class="icon-btn" title="Next">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l9 6-9 6V6zM18 6v12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="tp-right">
+        <button id="eqBtn" class="icon-btn sm" title="Equalizer">
+          <svg viewBox="0 0 24 24" width="19" height="19"><path d="M6 20v-6M6 11V4M12 20v-3M12 14V4M18 20v-9M18 8V4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="6" cy="12.5" r="1.7" fill="currentColor"/><circle cx="12" cy="15.5" r="1.7" fill="currentColor"/><circle cx="18" cy="9.5" r="1.7" fill="currentColor"/></svg>
+        </button>
+        <button id="favBtn" class="icon-btn sm" title="Favorite">
+          <svg id="favIcon" viewBox="0 0 24 24" width="19" height="19"><path d="M12 20s-7-4.4-7-9.3A3.7 3.7 0 0 1 12 7a3.7 3.7 0 0 1 7 3.7C19 15.6 12 20 12 20z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="rail">
+      <div class="select-wrap">
+        <select id="source">
+          <option value="folder">Music folder</option>
+          <option value="favorites">Favorites</option>
+        </select>
+        <svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="rail-right">
+        <button id="gridBtn" class="box-btn fav" title="Favorites">
+          <svg viewBox="0 0 24 24" width="23" height="23"><path d="M12 21s-7.3-4.6-9.6-9.2C.9 8.1 2.6 4.3 6.2 4.3c2.1 0 3.5 1.3 4.3 2.6l1.5 2.3 1.5-2.3c.8-1.3 2.2-2.6 4.3-2.6 3.6 0 5.3 3.8 3.8 7.5C19.3 16.4 12 21 12 21z" fill="currentColor"/></svg>
+        </button>
+        <button id="folderBtn" class="box-btn solid" title="Music folder"></button>
+      </div>
+    </section>
+
+    <section class="vol">
+      <svg viewBox="0 0 24 24" width="15" height="15"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8c1.5 1.2 1.5 6.8 0 8" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+      <input type="range" id="volume" min="0" max="100" value="85" />
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="sheet" id="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="sheetTitle">Favorites</div>
+        <div class="sheet-actions">
+          <button id="selectMusicBtn" class="text-btn hidden">Select music</button>
+          <button id="changeFolderBtn" class="text-btn hidden">Change folder</button>
+          <button id="sheetClose" class="icon-btn">
+            <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="sheet-list" id="sheetList"></div>
+      <div class="sheet-empty hidden" id="sheetEmpty"></div>
+    </div>
+
+    <div class="sheet amb-sheet" id="ambSheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Ambience</div>
+        <button id="ambClose" class="icon-btn">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="amb-body">
+        <div class="amb-grid">
+          <button class="amb-chip" data-amb="rain">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 14c-2.2 0-4-1.8-4-4s1.8-4 4-4c.4-2.3 2.4-4 4.8-4 2.7 0 4.9 2.2 4.9 4.9v.1c1.8.1 3.3 1.6 3.3 3.5S18.5 14 16.6 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 17l-1 2.4M12 17l-1 2.4M16 17l-1 2.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>Rain</span>
+          </button>
+          <button class="amb-chip" data-amb="drizzle">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 13c-2.2 0-4-1.8-4-4s1.8-4 4-4c.4-2.3 2.4-4 4.8-4 2.7 0 4.9 2.2 4.9 4.9v.1c1.8.1 3.3 1.6 3.3 3.5S18.5 13 16.6 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 16.5l-.6 1.5M14 16.5l-.6 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>Drizzle</span>
+          </button>
+          <button class="amb-chip" data-amb="downpour">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 12c-2.2 0-4-1.8-4-4s1.8-4 4-4c.4-2.3 2.4-4 4.8-4 2.7 0 4.9 2.2 4.9 4.9v.1c1.8.1 3.3 1.6 3.3 3.5S18.5 12 16.6 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 15l-1.5 4M10 15l-1.5 4M14 15l-1.5 4M18 15l-1.5 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span>Downpour</span>
+          </button>
+          <button class="amb-chip" data-amb="rooftop">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 10l8-5 8 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 13l-1 2.4M12 13l-1 2.4M17 13l-1 2.4M9.5 16l-1 2.4M14.5 16l-1 2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span>Rooftop</span>
+          </button>
+          <button class="amb-chip" data-amb="thunder">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M7 13c-2.2 0-4-1.8-4-4s1.8-4 4-4c.4-2.3 2.4-4 4.8-4 2.7 0 4.9 2.2 4.9 4.9v.1c1.8.1 3.3 1.6 3.3 3.5S18.5 13 16.6 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 13l-2.2 4H12l-2 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Thunder</span>
+          </button>
+          <button class="amb-chip" data-amb="fire">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3c1 3.2 4 4.3 4 8a4 4 0 0 1-8 0c0-1.6.6-2.7 1.3-3.5C10.8 6.6 12 5.5 12 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 20a2 2 0 0 0 2-2c0-1.2-2-2.4-2-4-1 .8-2 1.8-2 3.4A2 2 0 0 0 12 20z" fill="currentColor"/></svg>
+            <span>Fire</span>
+          </button>
+          <button class="amb-chip" data-amb="wind">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 8h9a2.5 2.5 0 1 0-2.5-2.6M3 12h13a2.6 2.6 0 1 1-2.6 2.7M3 16h7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span>Wind</span>
+          </button>
+        </div>
+        <div class="amb-row">
+          <span class="amb-lbl">Rainfall</span>
+          <input type="range" id="precipRange" min="0" max="100" value="50" />
+        </div>
+        <div class="amb-row">
+          <span class="amb-lbl">Volume</span>
+          <input type="range" id="ambVolume" min="0" max="100" value="50" />
+        </div>
+        <div class="amb-note">Mixes on top of your music · combine any layers</div>
+      </div>
+    </div>
+
+    <div class="sheet bg-sheet" id="bgSheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Background</div>
+        <button id="bgClose" class="icon-btn">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="bg-body">
+        <button id="bgUpload" class="bg-upload">
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 16V5M8 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Upload image</span>
+        </button>
+        <div class="bg-hint">Best size: <b>720 × 960 px</b> · portrait 3:4 · fills the whole player</div>
+        <button id="bgRemove" class="text-btn bg-remove hidden">Remove background</button>
+      </div>
+    </div>
+
+    <div class="sheet eq-sheet" id="eqSheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Equalizer</div>
+        <button id="eqClose" class="icon-btn">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="eq-body">
+        <div class="eq-presets">
+          <button class="eq-preset" data-eq="flat">Flat</button>
+          <button class="eq-preset" data-eq="pop">Pop</button>
+          <button class="eq-preset" data-eq="classic">Classic</button>
+          <button class="eq-preset" data-eq="rock">Rock</button>
+          <button class="eq-preset" data-eq="jazz">Jazz</button>
+          <button class="eq-preset" data-eq="custom1">Customize 1</button>
+          <button class="eq-preset" data-eq="custom2">Customize 2</button>
+        </div>
+        <div class="eq-bands">
+          <div class="eq-row"><span class="eq-freq">60</span><input type="range" class="eq-band" data-b="0" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="0">0</span></div>
+          <div class="eq-row"><span class="eq-freq">150</span><input type="range" class="eq-band" data-b="1" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="1">0</span></div>
+          <div class="eq-row"><span class="eq-freq">400</span><input type="range" class="eq-band" data-b="2" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="2">0</span></div>
+          <div class="eq-row"><span class="eq-freq">1k</span><input type="range" class="eq-band" data-b="3" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="3">0</span></div>
+          <div class="eq-row"><span class="eq-freq">2.5k</span><input type="range" class="eq-band" data-b="4" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="4">0</span></div>
+          <div class="eq-row"><span class="eq-freq">8k</span><input type="range" class="eq-band" data-b="5" min="-12" max="12" step="1" value="0"><span class="eq-db" data-b="5">0</span></div>
+        </div>
+        <div class="amb-note">Customize 1 &amp; 2 save automatically as you adjust</div>
+      </div>
+    </div>
+
+    <div class="sheet about-sheet" id="aboutSheet">
+      <div class="sheet-head">
+        <div class="sheet-title">About</div>
+        <button id="aboutClose" class="icon-btn">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="about-body">
+        <div class="about-logo"><span class="dot"></span> vinyl</div>
+        <div class="about-ver">Version 1.6.3</div>
+        <div class="about-made">Made by <b>MR.SENOBARI</b></div>
+        <div class="about-mail">
+          <span id="aboutEmail">mohammadrezasm2@gmail.com</span>
+          <button id="copyEmail" class="text-btn">Copy</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <audio id="audio"></audio>
+  <script src="renderer.js"></script>
+</body>
+</html>
