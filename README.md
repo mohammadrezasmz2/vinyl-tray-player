@@ -121,12 +121,3 @@ are excluded from Git.
 Full production dependency notices are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
 The distribution also retains Electron's LICENSE.electron.txt and LICENSES.chromium.html.
 See [license provenance](licenses/README.md).
-
-## فارسی
-
-این مخزن مستقل برای Vinyl است. سورس اولیه از نسخهٔ ویندوزی ۱.۶.۳ بازیابی شده
-و نسخهٔ ۱.۶.۴ شامل اصلاح پخش، تنظیمات و دسترسی به فایل‌هاست.
-برای اجرا روی ویندوز، Node.js 24 را نصب کنید و دستورهای بالا را اجرا کنید؛
-برنامه از آیکون کنار ساعت باز می‌شود. نصب‌کننده و نسخهٔ بدون نصب را از
-[صفحهٔ انتشار](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/latest)
-بگیرید. [راهنمای فارسی ویندوز](docs/WINDOWS.fa.md)
