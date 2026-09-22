@@ -13,6 +13,12 @@ Vinyl opens from its system-tray icon. The release includes source, SHA-256
 checksums, and the Windows package test results. These community builds are
 unsigned. See the [Persian Windows guide](docs/WINDOWS.fa.md).
 
+See the [Code signing policy](CODE_SIGNING.md) for the planned SignPath
+Foundation application and the current unsigned status, and the
+[Privacy policy](PRIVACY.md) for local data handling. In packaged version 1.6.4,
+**Start with Windows is enabled by default**; turn it off in the tray menu if
+you do not want Vinyl to start when you sign in.
+
 ![Vinyl player](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/download/v1.6.4/Vinyl-1.6.4.png)
 
 ## Run from source
