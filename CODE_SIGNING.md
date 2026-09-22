@@ -5,8 +5,9 @@ Updated: September 22, 2026.
 ## Current status
 
 **Vinyl v1.6.4 is unsigned. No SignPath Foundation certificate has been granted
-to this project.** The maintainer is preparing an application for SignPath's
-free open-source program. Acceptance depends on the Foundation's review.
+to this project.** The maintainer submitted an application for SignPath's
+free open-source program on September 22, 2026. The application is awaiting
+the Foundation's review; submission does not imply acceptance.
 
 If accepted, the intended arrangement is: free code signing provided by
 [SignPath.io](https://signpath.io/), certificate by
