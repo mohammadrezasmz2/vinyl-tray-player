@@ -19,7 +19,11 @@ Foundation application and the current unsigned status, and the
 **Start with Windows is enabled by default**; turn it off in the tray menu if
 you do not want Vinyl to start when you sign in.
 
-![Vinyl player](https://github.com/mohammadrezasmz2/vinyl-tray-player/releases/download/v1.6.4/Vinyl-1.6.4.png)
+<p align="center">
+  <img src="docs/screenshots/vinyl-rain.png" alt="Vinyl with a blue theme and rainy city background" width="260" />
+  <img src="docs/screenshots/vinyl-snow.png" alt="Vinyl with a blue theme and snow particles" width="260" />
+  <img src="docs/screenshots/vinyl-autumn.png" alt="Vinyl with a golden theme and autumn leaves" width="260" />
+</p>
 
 ## Run from source
 
