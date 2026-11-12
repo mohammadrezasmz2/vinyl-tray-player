@@ -13,6 +13,7 @@ const { pathToFileURL } = require('node:url');
 const { DEFAULTS, EDITABLE, validSetting, normalizeSettings } = require('./lib/settings.cjs');
 const { AUDIO_MIME, IMAGE_MIME, MediaAccess, createMediaHandler } = require('./lib/media.cjs');
 const { trustedSender } = require('./lib/ipc.cjs');
+const { installWindowLifecycle } = require('./lib/window-lifecycle.cjs');
 const ENTRY_URL = 'app://vinyl/index.html';
 const mediaAccess = new MediaAccess();
 
@@ -29,7 +30,7 @@ store.set(normalizeSettings(store.store));
 
 let tray = null;
 let win = null;
-let isQuitting = false;
+let windowLifecycle = null;
 let dialogOpen = false;
 let pendingFile = null;
 let pinned = false;
@@ -103,9 +104,7 @@ function createWindow() {
   win.on('blur', () => {
     if (!pinned && !dialogOpen && win && win.isVisible()) win.hide();
   });
-  win.on('close', (e) => {
-    if (!isQuitting) { e.preventDefault(); win.hide(); }
-  });
+  windowLifecycle = installWindowLifecycle(win, app);
 }
 
 function positionWindowNearTray() {
@@ -173,7 +172,7 @@ function rebuildTrayMenu() {
       click: (item) => { store.set('autostart', item.checked); applyAutostart(); }
     },
     { type: 'separator' },
-    { label: 'Quit', click: () => { isQuitting = true; app.quit(); } }
+    { label: 'Quit', click: () => windowLifecycle.requestQuit() }
   ]);
   tray.setContextMenu(menu);
 }
@@ -404,5 +403,4 @@ if (!gotLock) {
   });
 
   app.on('window-all-closed', () => {});
-  app.on('before-quit', () => { isQuitting = true; });
 }
